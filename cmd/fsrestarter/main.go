@@ -48,8 +48,13 @@ func run() int {
 	}()
 
 	cmdpwd := filepath.Join(dir, cmd)
+	abscmd, err := filepath.Abs(cmdpwd)
+	if err != nil {
+		fmt.Println(err)
+		return 1
+	}
 
-	go restarter.DoWithContext(ctx, cmdpwd, args, restart)
+	go restarter.DoWithContext(ctx, abscmd, args, restart)
 	w, err := fsnotify.NewWatcher()
 	if err != nil {
 		fmt.Println(err)
