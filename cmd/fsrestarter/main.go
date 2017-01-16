@@ -72,7 +72,7 @@ func run() int {
 			if event.Name == cmdpwd {
 				restart <- true
 			}
-		case err := <-w.Errors:
+		case _ = <-w.Errors:
 			cancel()
 		case <-ctx.Done():
 			return 0
