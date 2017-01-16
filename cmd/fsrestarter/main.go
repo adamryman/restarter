@@ -10,8 +10,6 @@ import (
 
 	"github.com/adamryman/restarter"
 	"github.com/fsnotify/fsnotify"
-
-	. "github.com/y0ssar1an/q"
 )
 
 func main() {
@@ -71,12 +69,10 @@ func run() int {
 	for {
 		select {
 		case event := <-w.Events:
-			Q(event)
 			if event.Name == cmdpwd {
 				restart <- true
 			}
 		case err := <-w.Errors:
-			Q(err)
 			cancel()
 		case <-ctx.Done():
 			return 0

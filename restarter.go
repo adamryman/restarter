@@ -1,14 +1,25 @@
 package restarter
 
 import (
+	"log"
 	"os"
 	"os/exec"
 	"time"
 
 	"context"
-
-	. "github.com/y0ssar1an/q"
 )
+
+var debug func(...interface{})
+
+func noop(v ...interface{}) {}
+
+func init() {
+	if os.Getenv("RELOADER_DEBUG") == "" {
+		debug = noop
+	} else {
+		debug = log.New(os.Stderr, "RESTARTER: ", log.LstdFlags).Println
+	}
+}
 
 func DoWithContext(ctx context.Context, name string, args []string, restart <-chan bool) {
 	var cmd *exec.Cmd
@@ -21,17 +32,17 @@ func DoWithContext(ctx context.Context, name string, args []string, restart <-ch
 		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 		err = cmd.Start()
 		if err != nil {
-			Q(err)
+			debug(err)
 			time.Sleep(time.Second)
 			continue
 		}
-		Q("waiting for restart")
+		debug("waiting for restart")
 		<-restart
-		Q("RESTART GOT")
+		debug("got restart")
 		done()
 		err = cmd.Wait()
 		if err != nil {
-			Q(err)
+			debug(err)
 		}
 		select {
 		case <-ctx.Done():
