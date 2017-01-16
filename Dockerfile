@@ -1,7 +1,5 @@
-FROM busybox
+FROM golang:latest
 
-ADD ./fsrestarter fsrestarter
-ADD ./target /target
-RUN rm -rf /target/*
+ADD ./fsrestarter /fsrestarter
 
 ENTRYPOINT ["/fsrestarter"]

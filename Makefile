@@ -1,7 +1,7 @@
 
 docker:
-	go build ./cmd/fsrestarter
+	go build -o fsrestarter ./cmd/fsrestarter
 	docker build -t adamryman/fsrestarter .
-	rm fsrestarter
+	rm ./fsrestarter
 
 .PHONY: docker
