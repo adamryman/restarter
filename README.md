@@ -9,6 +9,14 @@ Current there are two cli interfaces for the library.
 
 ## fsrestarter
 
+```
+go get -u github.com/adamryman/restarter/cmd/fsrestarter
+fsrestarter -h
+Usage: fsrestarter [options] [arguments to pass to binary]
+  -b, --binary string      filename of binary to watch for updates and restart (default "run")
+  -d, --directory string   directory where binary is located (default "/target")
+```
+
 `fsrestarter` which watches a passed directory for a binary to be updated, it
 runs the binary and restarts the binary if it detects any change.
 
@@ -35,8 +43,8 @@ services:
 		image: adamryman/fsrestarter
 		expose: "45360"
 		volumes:
+			# By default fsrestarter watches "/target" for a binary called "run"
 			- $GOPATH/src/github.com/adamryman/service-2/target:/target
-		command: target run
 		environment:
 			PORT: "45360"
 			SERVICE-1-HOST: "service-1"

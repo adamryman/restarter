@@ -10,25 +10,29 @@ import (
 
 	"github.com/adamryman/restarter"
 	"github.com/fsnotify/fsnotify"
+	"github.com/pkg/errors"
+	flag "github.com/spf13/pflag"
 )
+
+var (
+	cmd = flag.StringP("binary", "b", "run", "filename of binary to watch for updates and restart")
+	dir = flag.StringP("directory", "d", "/target", "directory where binary is located")
+)
+
+func init() {
+	flag.Usage = func() {
+		fmt.Fprintln(os.Stderr, "Usage: fsrestarter [options] [arguments to pass to binary]")
+		flag.PrintDefaults()
+	}
+}
 
 func main() {
 	os.Exit(run())
 }
 
 func run() int {
-	if len(os.Args) < 3 {
-		fmt.Println("Usage:")
-		fmt.Println("fsrestarter WATCHDIR BIN [ARGS]...")
-		return 1
-	}
-	var args []string
-	if len(os.Args) > 4 {
-		args = os.Args[3:]
-	}
-
-	dir := os.Args[1]
-	cmd := os.Args[2]
+	flag.Parse()
+	args := flag.Args()
 
 	restart := make(chan bool)
 
@@ -45,10 +49,10 @@ func run() int {
 		errc <- err
 	}()
 
-	cmdpwd := filepath.Join(dir, cmd)
+	cmdpwd := filepath.Join(*dir, *cmd)
 	abscmd, err := filepath.Abs(cmdpwd)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(errors.Wrapf(err, "cannot open %q at %q", *cmd, *dir))
 		return 1
 	}
 
@@ -60,8 +64,8 @@ func run() int {
 		return 1
 	}
 	defer w.Close()
-	if err := w.Add(os.Args[1]); err != nil {
-		fmt.Println(err)
+	if err := w.Add(*cmd); err != nil {
+		fmt.Println(errors.Wrapf(err, "cannot watch %q at %q", *cmd, *dir))
 		cancel()
 		return 1
 	}
