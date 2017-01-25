@@ -1,7 +1,7 @@
 FROM golang:latest
 
-ADD ./fsrestarter /fsrestarter
+ADD ./fsrestarter /bin/fsrestarter
 
 WORKDIR /
 
-ENTRYPOINT ["/fsrestarter"]
+ENTRYPOINT ["fsrestarter"]

@@ -4,4 +4,10 @@ docker:
 	docker build -t adamryman/fsrestarter .
 	rm ./fsrestarter
 
-.PHONY: docker
+
+docker-test:
+	docker run --name fsrestarter-test --rm adamryman/fsrestarter -d /bin -b ping 0.0.0.0
+	docker stop fsrestarter-test
+
+
+.PHONY: docker docker-test

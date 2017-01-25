@@ -12,6 +12,8 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
 	flag "github.com/spf13/pflag"
+
+	. "github.com/y0ssar1an/q"
 )
 
 var (
@@ -44,9 +46,11 @@ func run() int {
 	go func() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+		Q("waiting for singal")
 		err := fmt.Errorf("%s", <-c)
-		cancel()
+		Q("about to send signal on error channel")
 		errc <- err
+		Q("sent signal on error channel")
 	}()
 
 	cmdpwd := filepath.Join(*dir, *cmd)
@@ -64,7 +68,7 @@ func run() int {
 		return 1
 	}
 	defer w.Close()
-	if err := w.Add(*cmd); err != nil {
+	if err := w.Add(abscmd); err != nil {
 		fmt.Println(errors.Wrapf(err, "cannot watch %q at %q", *cmd, *dir))
 		cancel()
 		return 1
@@ -76,9 +80,17 @@ func run() int {
 			if event.Name == cmdpwd {
 				restart <- true
 			}
-		case _ = <-w.Errors:
+		case err := <-w.Errors:
+			fmt.Println(err)
 			cancel()
-		case <-ctx.Done():
+			<-ctx.Done()
+			return 0
+		case err := <-errc:
+			Q("we got an error")
+			Q(err)
+			fmt.Println(err)
+			cancel()
+			<-ctx.Done()
 			return 0
 		}
 	}
