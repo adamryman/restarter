@@ -21,14 +21,15 @@ func init() {
 	}
 }
 
-func DoWithContext(ctx context.Context, name string, args []string, restart <-chan bool) {
+func DoWithContext(ctx context.Context, name string, args []string, restart <-chan bool) error {
 	var cmd *exec.Cmd
 	var err error
+	errc := make(chan error)
 
 	for {
 		select {
 		case <-ctx.Done():
-			break
+			return nil
 		default:
 			cctx, done := context.WithCancel(ctx)
 			cmd = exec.CommandContext(cctx, name, args...)
@@ -40,13 +41,23 @@ func DoWithContext(ctx context.Context, name string, args []string, restart <-ch
 				time.Sleep(time.Second)
 				continue
 			}
+			go func() {
+				errc <- cmd.Wait()
+			}()
 			debug("waiting for restart")
-			<-restart
-			debug("got restart")
-			done()
-			err = cmd.Wait()
-			if err != nil {
-				debug(err)
+
+			select {
+			case err = <-errc:
+				return err
+			case <-ctx.Done():
+				return nil
+			case <-restart:
+				debug("got restart")
+				done()
+				err := <-errc
+				if err != nil {
+					debug(err)
+				}
 			}
 		}
 	}

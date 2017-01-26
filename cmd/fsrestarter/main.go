@@ -60,7 +60,9 @@ func run() int {
 		return 1
 	}
 
-	go restarter.DoWithContext(ctx, abscmd, args, restart)
+	go func() {
+		errc <- restarter.DoWithContext(ctx, abscmd, args, restart)
+	}()
 	w, err := fsnotify.NewWatcher()
 	if err != nil {
 		fmt.Println(err)
