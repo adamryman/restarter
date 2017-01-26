@@ -6,8 +6,15 @@ docker:
 
 
 docker-test:
-	docker run --name fsrestarter-test --rm adamryman/fsrestarter -d /bin -b ping 0.0.0.0
+	go build -o run github.com/adamryman/helloworlddoer
+	docker build -t adamryman/fsrestarter-test -f Dockerfile.test .
+	rm run
+	docker run -d --name fsrestarter-test adamryman/fsrestarter-test
+	docker logs fsrestarter-test
+	sleep 5
 	docker stop fsrestarter-test
+	docker logs fsrestarter-test
+	docker rm fsrestarter-test
 
 
 .PHONY: docker docker-test
