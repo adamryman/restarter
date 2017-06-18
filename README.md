@@ -3,7 +3,7 @@
 *NOTE: In non-professional state at the moment, I will clean it up and add real
 errors, but I wanted to put this up even in its current state*
 
-restarter restarts a command with arguments when a restart channel is sent to.
+Package restarter restarts a command with arguments when a restart channel is sent to.
 
 Current there are two cli interfaces for the library.
 

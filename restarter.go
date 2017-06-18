@@ -1,3 +1,5 @@
+// Package restarter restarts a command with arguments when a restart channel
+// is sent to.
 package restarter
 
 import (
