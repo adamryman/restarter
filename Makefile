@@ -6,15 +6,10 @@ docker:
 
 
 docker-test:
-	go build -o run github.com/adamryman/helloworlddoer
-	docker build -t adamryman/fsrestarter-test -f Dockerfile.test .
-	rm run
-	docker run -d --name fsrestarter-test adamryman/fsrestarter-test
-	docker logs fsrestarter-test
-	sleep 5
-	docker stop fsrestarter-test
-	docker logs fsrestarter-test
-	docker rm fsrestarter-test
+	mkdir -p ./test/target
+	go build -o ./test/target/run github.com/adamryman/restarter/test/stdouter
+	docker-compose up -d
+	docker-compose logs stdouter
 
 
 .PHONY: docker docker-test

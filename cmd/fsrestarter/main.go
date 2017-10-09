@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -12,13 +13,10 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
 	flag "github.com/spf13/pflag"
-
-	. "github.com/y0ssar1an/q"
 )
 
 var (
-	cmd = flag.StringP("binary", "b", "run", "filename of binary to watch for updates and restart")
-	dir = flag.StringP("directory", "d", "/target", "directory where binary is located")
+	binaryRelPath = flag.StringP("binary", "b", "./run", "Relative or full path to binary to restart")
 )
 
 func init() {
@@ -34,66 +32,89 @@ func main() {
 
 func run() int {
 	flag.Parse()
-	args := flag.Args()
 
-	restart := make(chan bool)
+	// send on restart to restart cmd
+	restartChan := make(chan bool)
 
 	// Mechanical domain.
 	errc := make(chan error)
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	// Interrupt handler.
 	go func() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
-		Q("waiting for singal")
+		debug("waiting for singal")
 		err := fmt.Errorf("%s", <-c)
-		Q("about to send signal on error channel")
+		debug("about to send signal on error channel")
 		errc <- err
-		Q("sent signal on error channel")
+		debug("sent signal on error channel")
 	}()
 
-	cmdpwd := filepath.Join(*dir, *cmd)
-	abscmd, err := filepath.Abs(cmdpwd)
+	binaryAbsPath, err := filepath.Abs(*binaryRelPath)
 	if err != nil {
-		fmt.Println(errors.Wrapf(err, "cannot open %q at %q", *cmd, *dir))
+		fmt.Println(errors.Wrapf(err, "cannot open %q", *binaryRelPath))
 		return 1
 	}
 
 	go func() {
-		errc <- restarter.DoWithContext(ctx, abscmd, args, restart)
+		// flag.Args() contains flags to pass to the binary
+		errc <- restarter.DoWithContext(ctx, binaryAbsPath, flag.Args(), restartChan)
 	}()
-	w, err := fsnotify.NewWatcher()
+
+	// watch the filesystem
+	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		fmt.Println(err)
-		cancel()
 		return 1
 	}
-	defer w.Close()
-	if err := w.Add(abscmd); err != nil {
-		fmt.Println(errors.Wrapf(err, "cannot watch %q at %q", *cmd, *dir))
-		cancel()
+
+	// watch the binary for changes
+	if err := watcher.Add(binaryAbsPath); err != nil {
+		fmt.Println(errors.Wrapf(err, "cannot watch %q", binaryAbsPath))
 		return 1
 	}
 
 	for {
 		select {
-		case event := <-w.Events:
-			if event.Name == cmdpwd {
-				restart <- true
+		// If we get an event and it is from the binary path, restart
+		case event := <-watcher.Events:
+			if event.Name == *binaryRelPath {
+				debug("got event with binary name")
+				restartChan <- true
 			}
-		case err := <-w.Errors:
+			bounceWatcher(binaryAbsPath, watcher)
+		case err := <-watcher.Errors:
+			debug("watcher error")
 			fmt.Println(err)
 			cancel()
-			<-ctx.Done()
-			return 0
 		case err := <-errc:
-			Q("we got an error")
-			Q(err)
+			debug("we got an error from restarter")
 			fmt.Println(err)
 			cancel()
-			<-ctx.Done()
+		case <-ctx.Done():
 			return 0
 		}
+	}
+}
+
+func bounceWatcher(name string, w *fsnotify.Watcher) error {
+	err := w.Remove(name)
+	if err != nil {
+		debug(err)
+	}
+	return w.Add(name)
+}
+
+var debug func(...interface{})
+
+func noop(v ...interface{}) {}
+
+func init() {
+	if os.Getenv("DEBUG") == "" {
+		debug = noop
+	} else {
+		debug = log.New(os.Stderr, "FS_RESTARTER: ", log.LstdFlags).Println
 	}
 }

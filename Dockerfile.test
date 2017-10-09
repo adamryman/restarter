@@ -1,5 +1,0 @@
-FROM adamryman/fsrestarter
-
-ADD run /target/run
-
-ENTRYPOINT ["fsrestarter"]

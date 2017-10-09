@@ -11,18 +11,6 @@ import (
 	"context"
 )
 
-var debug func(...interface{})
-
-func noop(v ...interface{}) {}
-
-func init() {
-	if os.Getenv("RELOADER_DEBUG") == "" {
-		debug = noop
-	} else {
-		debug = log.New(os.Stderr, "RESTARTER: ", log.LstdFlags).Println
-	}
-}
-
 func DoWithContext(ctx context.Context, name string, args []string, restart <-chan bool) error {
 	var cmd *exec.Cmd
 	var err error
@@ -31,36 +19,99 @@ func DoWithContext(ctx context.Context, name string, args []string, restart <-ch
 	for {
 		select {
 		case <-ctx.Done():
+			debug("parent done")
 			return nil
 		default:
-			cctx, done := context.WithCancel(ctx)
-			cmd = exec.CommandContext(cctx, name, args...)
-			cmd.Env = os.Environ()
-			cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
-			err = cmd.Start()
-			if err != nil {
-				debug(err)
-				time.Sleep(time.Second)
-				continue
-			}
-			go func() {
-				errc <- cmd.Wait()
-			}()
-			debug("waiting for restart")
+		}
 
-			select {
-			case err = <-errc:
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+
+		debug("starting cmd:")
+		debug(name)
+		cmd = exec.CommandContext(ctx, name, args...)
+		cmd.Env = os.Environ()
+		cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
+		err = cmd.Start()
+		if err != nil {
+			debug(err)
+			time.Sleep(time.Second)
+			continue
+		}
+		go func() {
+			errc <- cmd.Wait()
+		}()
+		debug("waiting for restart")
+
+		select {
+		case err = <-errc:
+			debug("got error")
+			if err != nil {
+				debug("got error from cmd")
+				debug(err)
 				return err
-			case <-ctx.Done():
-				return nil
-			case <-restart:
-				debug("got restart")
-				done()
-				err := <-errc
-				if err != nil {
-					debug(err)
-				}
 			}
+		case <-restart:
+			debug("got restart")
+			cancel()
+			err := <-errc
+			if err != nil {
+				debug("got error out of errc")
+				debug(err)
+			}
+		case <-ctx.Done():
+			debug("ctx Done")
+			return nil
 		}
 	}
 }
+
+var debug func(...interface{})
+
+func noop(v ...interface{}) {}
+
+func init() {
+	if os.Getenv("DEBUG") == "" {
+		debug = noop
+	} else {
+		debug = log.New(os.Stderr, "RESTARTER: ", log.LstdFlags).Println
+	}
+}
+
+//func waitForRestart(ctx context.Context, name string, args []string, restart <-chan bool) error {
+//ctx, cancel := context.WithCancel(ctx)
+//defer cancel()
+
+//cmd = exec.CommandContext(ctx, name, args...)
+//cmd.Env = os.Environ()
+//cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
+//err = cmd.Start()
+//if err != nil {
+//debug("error starting cmd")
+//debug(err)
+//time.Sleep(time.Second)
+//continue
+//}
+//go func() {
+//errc <- cmd.Wait()
+//}()
+
+//debug("waiting for restart")
+//select {
+//case <-restart:
+//debug("got restart")
+//err := <-errc
+//if err != nil {
+//debug(err)
+//return err
+//}
+//case err = <-errc:
+//if err != nil {
+//debug("got error from cmd")
+//debug(err)
+//return err
+//}
+//case <-ctx.Done():
+//}
+//return nil
+//}

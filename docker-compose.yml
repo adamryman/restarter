@@ -1,0 +1,10 @@
+version: "3"
+
+services:
+  stdouter:
+    image: adamryman/fsrestarter
+    volumes:
+    - $GOPATH/src/github.com/adamryman/restarter/test/target:/target
+    command: ["-b", "/target/run"]
+    environment:
+      - DEBUG=1
