@@ -71,47 +71,9 @@ var debug func(...interface{})
 func noop(v ...interface{}) {}
 
 func init() {
-	if os.Getenv("DEBUG") == "" {
+	if os.Getenv("RESTARTER_DEBUG") == "" {
 		debug = noop
 	} else {
 		debug = log.New(os.Stderr, "RESTARTER: ", log.LstdFlags).Println
 	}
 }
-
-//func waitForRestart(ctx context.Context, name string, args []string, restart <-chan bool) error {
-//ctx, cancel := context.WithCancel(ctx)
-//defer cancel()
-
-//cmd = exec.CommandContext(ctx, name, args...)
-//cmd.Env = os.Environ()
-//cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
-//err = cmd.Start()
-//if err != nil {
-//debug("error starting cmd")
-//debug(err)
-//time.Sleep(time.Second)
-//continue
-//}
-//go func() {
-//errc <- cmd.Wait()
-//}()
-
-//debug("waiting for restart")
-//select {
-//case <-restart:
-//debug("got restart")
-//err := <-errc
-//if err != nil {
-//debug(err)
-//return err
-//}
-//case err = <-errc:
-//if err != nil {
-//debug("got error from cmd")
-//debug(err)
-//return err
-//}
-//case <-ctx.Done():
-//}
-//return nil
-//}
