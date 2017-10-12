@@ -3,6 +3,7 @@
 package restarter
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -39,6 +40,7 @@ func DoWithContext(ctx context.Context, name string, args []string, restart <-ch
 			continue
 		}
 		go func() {
+			fmt.Fprintf(os.Stderr, "Running binary '%s' with arguments '%s'\n", name, args)
 			errc <- cmd.Wait()
 		}()
 		debug("waiting for restart")

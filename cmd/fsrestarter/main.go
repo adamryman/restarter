@@ -41,7 +41,11 @@ func run() int {
 		flag.Usage()
 	}
 	binaryRelPath := args[0]
-	binaryArgs := args[0:]
+
+	var binaryArgs []string
+	if len(args) > 1 {
+		binaryArgs = args[1:]
+	}
 	debug(binaryRelPath)
 	debug(binaryArgs)
 
