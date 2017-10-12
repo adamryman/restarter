@@ -110,6 +110,10 @@ func run() int {
 				fmt.Fprintf(os.Stderr, "restarting '%s'", args)
 				restartChan <- true
 			}
+			// TODO: bounceWatcher until Add does not return an error
+			// TODO: Deal with this:
+			// If sync, we never will hit `<-ctx.Done()`
+			// If async, we might call this twice. (need a mutex?)
 			err := bounceWatcher(binaryAbsPath, watcher)
 			if err != nil {
 				debug(err)
