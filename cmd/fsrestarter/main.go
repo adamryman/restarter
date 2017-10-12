@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"github.com/adamryman/restarter"
 	"github.com/fsnotify/fsnotify"
@@ -44,15 +45,20 @@ func run() int {
 	debug(binaryRelPath)
 	debug(binaryArgs)
 
+	fmt.Fprintf(os.Stderr, "Running init cmd 'sh -c \"%s\"\n", *initCmd)
+
 	// Execute inital cmd
+	t := time.Now()
 	cmd := exec.Command("sh", "-c", *initCmd)
 	cmd.Env = os.Environ()
 	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
 	err := cmd.Run()
 	if err != nil {
-		fmt.Println(errors.Wrapf(err, "error running init cmd 'sh -c \"%s\"'", *initCmd))
+		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "error running init cmd 'sh -c \"%s\"'", *initCmd))
 		return 1
 	}
+
+	fmt.Fprintf(os.Stderr, "took: %v\n", time.Since(t))
 
 	// send on restart to restart cmd
 	restartChan := make(chan bool)
@@ -75,7 +81,7 @@ func run() int {
 
 	binaryAbsPath, err := filepath.Abs(binaryRelPath)
 	if err != nil {
-		fmt.Println(errors.Wrapf(err, "cannot open %q", binaryRelPath))
+		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "cannot open %q", binaryRelPath))
 		return 1
 	}
 
@@ -86,13 +92,13 @@ func run() int {
 	// watch the filesystem
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
 
 	// watch the binary for changes
 	if err := watcher.Add(binaryAbsPath); err != nil {
-		fmt.Println(errors.Wrapf(err, "cannot watch %q", binaryAbsPath))
+		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "cannot watch %q", binaryAbsPath))
 		return 1
 	}
 
