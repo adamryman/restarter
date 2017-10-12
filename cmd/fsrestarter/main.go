@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"syscall"
@@ -13,6 +14,10 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
 	flag "github.com/spf13/pflag"
+)
+
+var (
+	initCmd = flag.StringP("init", "i", "", `Inital command to run before launching binary. It is executed with '/bin/sh -c "$init"'`)
 )
 
 func init() {
@@ -27,13 +32,27 @@ func main() {
 }
 
 func run() int {
-	if len(os.Args) < 2 {
+	flag.Parse()
+	args := flag.Args()
+	debug(`init: sh -c "`, *initCmd, `"`)
+	debug("restarter args: ", args)
+	if len(args) < 1 {
 		flag.Usage()
 	}
-	binaryRelPath := os.Args[1]
-	binaryArgs := os.Args[1:]
+	binaryRelPath := args[0]
+	binaryArgs := args[0:]
 	debug(binaryRelPath)
 	debug(binaryArgs)
+
+	// Execute inital cmd
+	cmd := exec.Command("sh", "-c", *initCmd)
+	cmd.Env = os.Environ()
+	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
+	err := cmd.Run()
+	if err != nil {
+		fmt.Println(errors.Wrapf(err, "error running init cmd 'sh -c \"%s\"'", *initCmd))
+		return 1
+	}
 
 	// send on restart to restart cmd
 	restartChan := make(chan bool)
@@ -61,7 +80,6 @@ func run() int {
 	}
 
 	go func() {
-		// flag.Args() contains flags to pass to the binary
 		errc <- restarter.DoWithContext(ctx, binaryAbsPath, binaryArgs, restartChan)
 	}()
 

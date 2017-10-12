@@ -4,4 +4,4 @@ ADD ./fsrestarter /bin/fsrestarter
 
 WORKDIR /
 
-ENTRYPOINT ["fsrestarter"]
+ENTRYPOINT ["/bin/fsrestarter"]

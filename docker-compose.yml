@@ -5,6 +5,7 @@ services:
     image: adamryman/fsrestarter
     volumes:
     - $GOPATH/src/github.com/adamryman/restarter/test/target:/target
-    command: ["/target/run", "-n", "0.5s"]
+    command: ["-i", "echo 123", "--", "/target/run", "-n", "0.5s"]
+    #entrypoint: "echo"
     environment:
       - RESTARTER_DEBUG=1
