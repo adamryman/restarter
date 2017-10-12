@@ -107,7 +107,7 @@ func run() int {
 		// If we get an event and it is from the binary path, restart
 		case event := <-watcher.Events:
 			if event.Name == binaryRelPath {
-				debug("got event with binary name")
+				fmt.Fprintf(os.Stderr, "restarting '%s'", args)
 				restartChan <- true
 			}
 			err := bounceWatcher(binaryAbsPath, watcher)
