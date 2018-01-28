@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -48,6 +49,14 @@ func run() int {
 	}
 	debug(binaryRelPath)
 	debug(binaryArgs)
+
+	debug(os.Getenv(binaryRelPath))
+	debug(os.Getenv(strings.TrimRightFunc(binaryRelPath, func(r rune) bool {
+		if r == '$' {
+			return true
+		}
+		return false
+	})))
 
 	fmt.Fprintf(os.Stderr, "Running init cmd 'sh -c \"%s\"\n", *initCmd)
 

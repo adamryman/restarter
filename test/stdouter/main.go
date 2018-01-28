@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"os"
+	//"os"
 	"time"
 
 	flag "github.com/spf13/pflag"
@@ -17,6 +17,7 @@ func main() {
 	flag.Parse()
 
 	for ticker := time.Tick(*interval); ; <-ticker {
-		fmt.Fprintln(os.Stdout, *message)
+		//fmt.Fprintln(os.Stdout, *message)
+		fmt.Println(*message)
 	}
 }

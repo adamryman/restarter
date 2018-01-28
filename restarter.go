@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	"context"
@@ -30,6 +31,13 @@ func DoWithContext(ctx context.Context, name string, args []string, restart <-ch
 
 		debug("starting cmd:")
 		debug(name)
+		debug(os.Getenv(name))
+		debug(os.Getenv(strings.TrimRightFunc(name, func(r rune) bool {
+			if r == '$' {
+				return true
+			}
+			return false
+		})))
 		cmd = exec.CommandContext(ctx, name, args...)
 		cmd.Env = os.Environ()
 		cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
